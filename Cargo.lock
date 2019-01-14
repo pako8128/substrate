@@ -1944,6 +1944,7 @@ dependencies = [
  "srml-upgrade-key 0.1.0",
  "substrate-client 0.1.0",
  "substrate-consensus-aura-primitives 0.1.0",
+ "substrate-consensus-authorities 0.1.0",
  "substrate-keyring 0.1.0",
  "substrate-primitives 0.1.0",
 ]
@@ -3550,6 +3551,7 @@ dependencies = [
  "substrate-client 0.1.0",
  "substrate-consensus-aura-primitives 0.1.0",
  "substrate-consensus-aura-slots 0.1.0",
+ "substrate-consensus-authorities 0.1.0",
  "substrate-consensus-common 0.1.0",
  "substrate-executor 0.1.0",
  "substrate-inherents 0.1.0",
@@ -3590,6 +3592,20 @@ dependencies = [
  "substrate-inherents 0.1.0",
  "substrate-primitives 0.1.0",
  "tokio 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "substrate-consensus-authorities"
+version = "0.1.0"
+dependencies = [
+ "parity-codec 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sr-io 0.1.0",
+ "sr-primitives 0.1.0",
+ "sr-std 0.1.0",
+ "sr-version 0.1.0",
+ "srml-support 0.1.0",
+ "substrate-client 0.1.0",
+ "substrate-primitives 0.1.0",
 ]
 
 [[package]]
@@ -3996,6 +4012,7 @@ dependencies = [
  "srml-support 0.1.0",
  "substrate-client 0.1.0",
  "substrate-consensus-aura-primitives 0.1.0",
+ "substrate-consensus-authorities 0.1.0",
  "substrate-executor 0.1.0",
  "substrate-inherents 0.1.0",
  "substrate-keyring 0.1.0",

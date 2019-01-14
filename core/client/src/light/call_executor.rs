@@ -478,10 +478,6 @@ mod tests {
 			).unwrap();
 		}
 
-		// check method that doesn't requires environment
-		let (remote, local) = execute(&remote_client, 0, "Core_authorities");
-		assert_eq!(remote, local);
-
 		// check method that requires environment
 		let (_, block) = execute(&remote_client, 0, "BlockBuilder_finalise_block");
 		let local_block: Header = Decode::decode(&mut &block[..]).unwrap();

@@ -435,7 +435,7 @@ pub mod tests {
 
 	type TestChecker = LightDataChecker<executor::NativeExecutor<test_client::LocalExecutor>, Blake2Hasher, Block, DummyStorage, OkCallFetcher>;
 
-	fn prepare_for_read_proof_check() -> (TestChecker, Header, Vec<Vec<u8>>, usize) {
+	fn prepare_for_read_proof_check() -> (TestChecker, Header, Vec<Vec<u8>>) {
 		// prepare remote client
 		let remote_client = test_client::new();
 		let remote_block_id = BlockId::Number(0);
@@ -444,7 +444,6 @@ pub mod tests {
 		remote_block_header.state_root = remote_client.state_at(&remote_block_id).unwrap().storage_root(::std::iter::empty()).0.into();
 
 		// 'fetch' read proof from remote node
-		let authorities_len = remote_client.authorities_at(&remote_block_id).unwrap().len();
 		let remote_read_proof = remote_client.read_proof(&remote_block_id, well_known_keys::AUTHORITY_COUNT).unwrap();
 
 		// check remote read proof locally
@@ -458,7 +457,7 @@ pub mod tests {
 		).unwrap();
 		let local_executor = test_client::LocalExecutor::new(None);
 		let local_checker = LightDataChecker::new(Arc::new(DummyBlockchain::new(DummyStorage::new())), local_executor);
-		(local_checker, remote_block_header, remote_read_proof, authorities_len)
+		(local_checker, remote_block_header, remote_read_proof)
 	}
 
 	fn prepare_for_header_proof_check(insert_cht: bool) -> (TestChecker, Hash, Header, Vec<Vec<u8>>) {
@@ -489,13 +488,13 @@ pub mod tests {
 
 	#[test]
 	fn storage_read_proof_is_generated_and_checked() {
-		let (local_checker, remote_block_header, remote_read_proof, authorities_len) = prepare_for_read_proof_check();
+		let (local_checker, remote_block_header, remote_read_proof) = prepare_for_read_proof_check();
 		assert_eq!((&local_checker as &FetchChecker<Block>).check_read_proof(&RemoteReadRequest::<Header> {
 			block: remote_block_header.hash(),
 			header: remote_block_header,
 			key: well_known_keys::AUTHORITY_COUNT.to_vec(),
 			retry_count: None,
-		}, remote_read_proof).unwrap().unwrap()[0], authorities_len as u8);
+		}, remote_read_proof).unwrap().unwrap()[0], 3 /*TODO: FIXME*/);
 	}
 
 	#[test]
