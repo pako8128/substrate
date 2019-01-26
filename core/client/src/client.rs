@@ -79,8 +79,11 @@ type ChangesUpdate = trie::MemoryDB<Blake2Hasher>;
 /// Execution strategies settings.
 #[derive(Debug, Clone)]
 pub struct ExecutionStrategies {
+	/// Execution strategy used when syncing.
 	pub syncing: ExecutionStrategy,
+	/// Execution strategy used when importing blocks.
 	pub importing: ExecutionStrategy,
+	/// Execution strategy used when constructing blocks.
 	pub block_construction: ExecutionStrategy,
 }
 
@@ -296,6 +299,11 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 			execution_strategies,
 			_phantom: Default::default(),
 		})
+	}
+
+	/// Get a referennce to the execution strategies.
+	pub fn execution_strategies(&self) -> &ExecutionStrategies {
+		&self.execution_strategies
 	}
 
 	/// Get a reference to the state at a given block.
@@ -593,8 +601,10 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 		Self: ProvideRuntimeApi,
 		<Self as ProvideRuntimeApi>::Api: BlockBuilderAPI<Block>
 	{
-		println!("client.new_block -----> execution_strategies {:?}", self.execution_strategies);
-		block_builder::BlockBuilder::new(self)
+		println!("client.new_block -----> start execution_strategies {:?}", self.execution_strategies());
+		let b = block_builder::BlockBuilder::new(self);
+		println!("client.new_block -----> end execution_strategies {:?}", self.execution_strategies());
+		b
 	}
 
 	/// Create a new block, built on top of `parent`.
@@ -606,7 +616,6 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 		Self: ProvideRuntimeApi,
 		<Self as ProvideRuntimeApi>::Api: BlockBuilderAPI<Block>
 	{
-		println!("client.new_block_at -----> execution_strategies {:?}", self.execution_strategies);
 		block_builder::BlockBuilder::at_block(parent, &self)
 	}
 
@@ -847,8 +856,8 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 					"Core_execute_block",
 					&<Block as BlockT>::new(import_headers.pre().clone(), body.unwrap_or_default()).encode(),
 					match origin {
-						BlockOrigin::NetworkInitialSync => get_execution_manager(self.execution_strategies.syncing),
-						_ => get_execution_manager(self.execution_strategies.importing),
+						BlockOrigin::NetworkInitialSync => get_execution_manager(self.execution_strategies().syncing),
+						_ => get_execution_manager(self.execution_strategies().importing),
 					},
 					None,
 				)?;
@@ -1285,7 +1294,7 @@ impl<B, E, Block, RA> CallRuntimeAt<Block> for Client<B, E, Block, RA> where
 			changes,
 			initialised_block,
 			|| self.prepare_environment_block(at),
-			ExecutionManager::NativeElseWasm,
+			self.execution_strategies.clone(),
 			native_call,
 		)
 	}
