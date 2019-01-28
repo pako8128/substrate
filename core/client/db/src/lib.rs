@@ -44,7 +44,7 @@ use parking_lot::RwLock;
 use primitives::{H256, Blake2Hasher, ChangesTrieConfiguration, convert_hash};
 use primitives::storage::well_known_keys;
 use runtime_primitives::{generic::BlockId, Justification, StorageMap, ChildrenStorageMap};
-use runtime_primitives::traits::{Block as BlockT, Header as HeaderT, As, NumberFor, Zero, Digest, DigestItem, AuthorityIdFor};
+use runtime_primitives::traits::{Hash as HashT, Block as BlockT, Header as HeaderT, As, NumberFor, Zero, Digest, DigestItem, AuthorityIdFor};
 use runtime_primitives::BuildStorage;
 use state_machine::backend::Backend as StateBackend;
 use executor::RuntimeInfo;
@@ -128,7 +128,7 @@ pub struct BlockchainDb<Block: BlockT> {
 	db: Arc<KeyValueDB>,
 	meta: Arc<RwLock<Meta<NumberFor<Block>, Block::Hash>>>,
 	leaves: RwLock<LeafSet<Block::Hash, NumberFor<Block>>>,
-	children: RwLock<ChildrenMap<Block::Hash, NumberFor<Block>>>,
+	children: RwLock<ChildrenMap<Block::Hash, Block::Hash>>,
 }
 
 impl<Block: BlockT> BlockchainDb<Block> {
