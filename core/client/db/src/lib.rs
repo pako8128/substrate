@@ -250,6 +250,10 @@ impl<Block: BlockT> client::blockchain::Backend<Block> for BlockchainDb<Block> {
 	fn leaves(&self) -> Result<Vec<Block::Hash>, client::error::Error> {
 		Ok(self.leaves.read().hashes())
 	}
+
+	fn children(&self, parent_hash: Block::Hash) -> Vec<Block::Hash> {
+		self.children.read().hashes(parent_hash)
+	}
 }
 
 /// Database transaction
@@ -640,6 +644,7 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 	fn try_commit_operation(&self, mut operation: BlockImportOperation<Block, Blake2Hasher>)
 		-> Result<(), client::error::Error>
 	{
+		println!("db inside commit_operation ----------------------------");
 		let mut transaction = DBTransaction::new();
 		operation.apply_aux(&mut transaction);
 
@@ -781,7 +786,12 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 			{
 				let mut leaves = self.blockchain.leaves.write();
 				let displaced_leaf = leaves.import(hash, number, parent_hash);
+				println!("db prepare_transaction --------------- {:?}->{:?}", parent_hash, hash);
 				leaves.prepare_transaction(&mut transaction, columns::META, meta_keys::LEAF_PREFIX);
+				
+				let mut children = self.blockchain().children.write();
+				children.import(parent_hash, hash);
+				children.prepare_transaction(&mut transaction, columns::META, meta_keys::CHILD_PREFIX);
 
 				let write_result = self.storage.db.write(transaction).map_err(db_err);
 				if let Err(e) = write_result {

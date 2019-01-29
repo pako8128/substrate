@@ -19,21 +19,23 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::RwLock;
-use crate::error;
-use crate::backend::{self, NewBlockState};
-use crate::light;
 use primitives::{ChangesTrieConfiguration, storage::well_known_keys};
 use runtime_primitives::generic::BlockId;
 use runtime_primitives::traits::{Block as BlockT, Header as HeaderT, Zero,
 	NumberFor, As, Digest, DigestItem, AuthorityIdFor};
 use runtime_primitives::{Justification, StorageMap, ChildrenStorageMap};
-use crate::blockchain::{self, BlockStatus, HeaderBackend};
 use state_machine::backend::{Backend as StateBackend, InMemory, Consolidate};
 use state_machine::{self, InMemoryChangesTrieStorage, ChangesTrieAnchorBlockId};
 use hash_db::Hasher;
 use heapsize::HeapSizeOf;
-use crate::leaves::LeafSet;
 use trie::MemoryDB;
+
+use crate::error;
+use crate::backend::{self, NewBlockState};
+use crate::light;
+use crate::leaves::LeafSet;
+use crate::children::ChildrenMap;
+use crate::blockchain::{self, BlockStatus, HeaderBackend};
 
 struct PendingBlock<B: BlockT> {
 	block: StoredBlock<B>,
@@ -97,6 +99,7 @@ struct BlockchainStorage<Block: BlockT> {
 	header_cht_roots: HashMap<NumberFor<Block>, Block::Hash>,
 	changes_trie_cht_roots: HashMap<NumberFor<Block>, Block::Hash>,
 	leaves: LeafSet<Block::Hash, NumberFor<Block>>,
+	children: ChildrenMap<Block::Hash, Block::Hash>,
 	aux: HashMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -147,6 +150,7 @@ impl<Block: BlockT> Blockchain<Block> {
 				header_cht_roots: HashMap::new(),
 				changes_trie_cht_roots: HashMap::new(),
 				leaves: LeafSet::new(),
+				children: ChildrenMap::new(),
 				aux: HashMap::new(),
 			}));
 		Blockchain {
@@ -188,7 +192,8 @@ impl<Block: BlockT> Blockchain<Block> {
 		let mut storage = self.storage.write();
 
 		storage.leaves.import(hash.clone(), number.clone(), header.parent_hash().clone());
-
+		storage.children.import(header.parent_hash().clone(), hash.clone());
+		
 		if new_state.is_best() {
 			if let Some(tree_route) = best_tree_route {
 				// apply retraction and enaction when reorganizing up to parent hash
@@ -340,6 +345,10 @@ impl<Block: BlockT> blockchain::Backend<Block> for Blockchain<Block> {
 
 	fn leaves(&self) -> error::Result<Vec<Block::Hash>> {
 		Ok(self.storage.read().leaves.hashes())
+	}
+
+	fn children(&self, parent_hash: Block::Hash) -> Vec<Block::Hash> {
+		self.storage.read().children.hashes(parent_hash)
 	}
 }
 
