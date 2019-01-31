@@ -86,6 +86,7 @@ pub trait CallRuntimeAt<Block: BlockT> {
 		changes: &mut OverlayedChanges,
 		initialised_block: &mut Option<BlockId<Block>>,
 		native_call: Option<NC>,
+		context: Option<ExecutionContext>
 	) -> error::Result<NativeOrEncoded<R>>;
 
 	/// Returns the runtime version at the given block.
