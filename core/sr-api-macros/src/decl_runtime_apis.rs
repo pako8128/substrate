@@ -446,9 +446,8 @@ fn generate_client_side_decls(decls: &[ItemTrait]) -> TokenStream {
 		let runtime_info = unwrap_or_error(
 			api_version.map(|v| generate_runtime_info_impl(&decl, v))
 		);
-		let d = quote!( #decl #runtime_info );
-		// println!("\n\nclient_side_decl:\n{}\n\n", d);
-		result.push(d);
+
+		result.push(quote!( #decl #runtime_info ));
 	}
 
 	quote!( #( #result )* )

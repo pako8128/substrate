@@ -824,7 +824,6 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 		where
 			E: CallExecutor<Block, Blake2Hasher> + Send + Sync + Clone,
 	{
-		println!("origin ---------------------------------> {:?}", origin);
 		match transaction.state()? {
 			Some(transaction_state) => {
 				let mut overlay = Default::default();
@@ -1292,8 +1291,6 @@ impl<B, E, Block, RA> CallRuntimeAt<Block> for Client<B, E, Block, RA> where
 			ExecutionContext::Importing => self.execution_strategies.importing.get_manager(),
 			ExecutionContext::Other => ExecutionManager::NativeElseWasm,
 		};
-		let strategy: ExecutionStrategy = (&manager).into();
-		println!("----> ctx={:?} strategy={:?}", context, strategy);	
 		self.executor.contextual_call::<_, fn(_,_) -> _,_,_>(
 			at,
 			function,
