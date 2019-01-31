@@ -267,7 +267,7 @@ fn generate_native_call_generators(decl: &ItemTrait) -> Result<TokenStream> {
 	Ok(quote!( #( #result )* ))
 }
 
-/// Generate the decleration of the trait for the runtime.
+/// Generate the declaration of the trait for the runtime.
 fn generate_runtime_decls(decls: &[ItemTrait]) -> TokenStream {
 	let mut result = Vec::new();
 
@@ -421,7 +421,7 @@ fn get_api_version(found_attributes: &HashMap<&'static str, Attribute>) -> Resul
 	}
 }
 
-/// Generate the decleration of the trait for the client side.
+/// Generate the declaration of the trait for the client side.
 fn generate_client_side_decls(decls: &[ItemTrait]) -> TokenStream {
 	let mut result = Vec::new();
 
@@ -446,8 +446,9 @@ fn generate_client_side_decls(decls: &[ItemTrait]) -> TokenStream {
 		let runtime_info = unwrap_or_error(
 			api_version.map(|v| generate_runtime_info_impl(&decl, v))
 		);
-
-		result.push(quote!( #decl #runtime_info ));
+		let d = quote!( #decl #runtime_info );
+		// println!("\n\nclient_side_decl:\n{}\n\n", d);
+		result.push(d);
 	}
 
 	quote!( #( #result )* )
@@ -576,9 +577,13 @@ pub fn decl_runtime_apis_impl(input: proc_macro::TokenStream) -> proc_macro::Tok
 	}
 
 	let hidden_includes = generate_hidden_includes(HIDDEN_INCLUDES_ID);	
+	
 	let runtime_decls = generate_runtime_decls(&api_decls);
 	generate_decl_with_context(&mut api_decls);
 	let client_side_decls = generate_client_side_decls(&api_decls);
+
+	println!("runtime decls\n{}\n\n", quote!( #runtime_decls ));
+	println!("client decls\n{}\n\n", quote!( #client_side_decls ));
 
 	quote!(
 		#hidden_includes
