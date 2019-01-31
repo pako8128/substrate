@@ -1284,9 +1284,16 @@ impl<B, E, Block, RA> CallRuntimeAt<Block> for Client<B, E, Block, RA> where
 		changes: &mut OverlayedChanges,
 		initialised_block: &mut Option<BlockId<Block>>,
 		native_call: Option<NC>,
-		context: Option<ExecutionContext>
+		context: ExecutionContext
 	) -> error::Result<NativeOrEncoded<R>> {
-		println!("execution context ----> {:?}", context);
+		let manager = match context {
+			ExecutionContext::BlockConstruction => self.execution_strategies.block_construction.get_manager(),
+			ExecutionContext::Syncing => self.execution_strategies.syncing.get_manager(),
+			ExecutionContext::Importing => self.execution_strategies.importing.get_manager(),
+			ExecutionContext::Other => ExecutionManager::NativeElseWasm,
+		};
+		let strategy: ExecutionStrategy = (&manager).into();
+		println!("----> ctx={:?} strategy={:?}", context, strategy);	
 		self.executor.contextual_call::<_, fn(_,_) -> _,_,_>(
 			at,
 			function,
@@ -1294,7 +1301,7 @@ impl<B, E, Block, RA> CallRuntimeAt<Block> for Client<B, E, Block, RA> where
 			changes,
 			initialised_block,
 			|| self.prepare_environment_block(at),
-			self.execution_strategies.clone(),
+			manager,
 			native_call,
 		)
 	}

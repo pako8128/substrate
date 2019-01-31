@@ -348,46 +348,6 @@ fn generate_runtime_api_base_structures(impls: &[ItemImpl]) -> Result<TokenStrea
 				function: &'static str,
 				args: Vec<u8>,
 				native_call: NC,
-			) -> #crate_::error::Result<R> {
-				let res = unsafe {
-					self.call.call_api_at(
-						at,
-						function,
-						args,
-						&mut *self.changes.borrow_mut(),
-						&mut *self.initialised_block.borrow_mut(),
-						Some(native_call),
-						None
-					).and_then(|r|
-						match r {
-							#crate_::runtime_api::NativeOrEncoded::Native(n) => {
-								Ok(n)
-							},
-							#crate_::runtime_api::NativeOrEncoded::Encoded(r) => {
-								R::decode(&mut &r[..])
-									.ok_or_else(||
-										#crate_::error::ErrorKind::CallResultDecode(
-											function
-										).into()
-									)
-							}
-						}
-					)
-				};
-
-				self.commit_on_ok(&res);
-				res
-			}
-
-			fn call_api_at_with_context<
-				R: #crate_::runtime_api::Encode + #crate_::runtime_api::Decode + PartialEq,
-				NC: FnOnce() -> R + ::std::panic::UnwindSafe,
-			>(
-				&self,
-				at: &#block_id,
-				function: &'static str,
-				args: Vec<u8>,
-				native_call: NC,
 				context: ExecutionContext
 			) -> #crate_::error::Result<R> {
 				let res = unsafe {
@@ -398,7 +358,7 @@ fn generate_runtime_api_base_structures(impls: &[ItemImpl]) -> Result<TokenStrea
 						&mut *self.changes.borrow_mut(),
 						&mut *self.initialised_block.borrow_mut(),
 						Some(native_call),
-						Some(context)
+						context
 					).and_then(|r|
 						match r {
 							#crate_::runtime_api::NativeOrEncoded::Native(n) => {
@@ -456,21 +416,17 @@ fn extend_with_runtime_decl_path(mut trait_: Path) -> Path {
 /// Generates the implementations of the apis for the runtime.
 fn generate_api_impl_for_runtime(impls: &[ItemImpl]) -> Result<TokenStream> {
 	let mut impls_prepared = Vec::new();
-	// let ts_bef = quote!( #( #impls )* );
-	// println!("(before )API IMPL FOR RUNTIME\n{}\n\n", ts_bef);
-	
+
 	// We put `runtime` before each trait to get the trait that is intended for the runtime and
 	// we put the `RuntimeBlock` as first argument for the trait generics.
 	for impl_ in impls.iter() {
 		let mut impl_ = impl_.clone();
 		let trait_ = extract_impl_trait(&impl_)?.clone();
 		let trait_ = extend_with_runtime_decl_path(trait_);
-		println!("\n\ntraits ---------------> \n{}\n\n", quote!( #trait_ ));
 		impl_.trait_.as_mut().unwrap().1 = trait_;
 		impls_prepared.push(impl_);
 	}
 	let ts = quote!( #( #impls_prepared )* );
-	println!("API IMPL FOR RUNTIME\n{}\n\n", ts);
 	Ok(ts)
 }
 
@@ -529,48 +485,39 @@ impl<'a> Fold for ApiRuntimeImplToApiRuntimeApiImpl<'a> {
 			let runtime = self.runtime_type;
 			let mut arg_names2 = arg_names.clone();
 			let mut fn_name = prefix_function_with_trait(self.impl_trait_ident, &input.sig.ident);
-			let native_call_generator_ident =
-				generate_native_call_generator_fn_name(&input.sig.ident);
 			let trait_generic_arguments = self.trait_generic_arguments;
 			let node_block = self.node_block;
 
-			let with_name_str = "_with_context";
-			if fn_name.ends_with(with_name_str) {
-				let ctx = arg_names2.pop();
-				fn_name = fn_name.get(..(fn_name.len() - with_name_str.len())).unwrap().to_string();
-				// Generate the new method implementation that calls into the runime.
-				parse_quote!(
-					{
-						let args = #crate_::runtime_api::Encode::encode(&( #( &#arg_names ),* ));
-						self.call_api_at_with_context(
-							at,
-							#fn_name,
-							args,
-							#runtime_mod_path #native_call_generator_ident ::
-								<#runtime, #node_block #(, #trait_generic_arguments )*> (
-								#( #arg_names2 ),*
-							),
-							#ctx
-						)
-					}
-				)
-			} else {
-				// Generate the new method implementation that calls into the runime.
-				parse_quote!(
-					{
-						let args = #crate_::runtime_api::Encode::encode(&( #( &#arg_names ),* ));
-						self.call_api_at(
-							at,
-							#fn_name,
-							args,
-							#runtime_mod_path #native_call_generator_ident ::
-								<#runtime, #node_block #(, #trait_generic_arguments )*> (
-								#( #arg_names2 ),*
-							)
-						)
-					}
-				)
+			let mut execution_context = parse_quote!( ExecutionContext::Other );
+			let mut call_generator_name = input.sig.ident.to_string();
+			
+			let with_context_str = "_with_context";
+			if fn_name.ends_with(with_context_str) {
+				let fn_len = fn_name.len() - with_context_str.len();
+				let gen_len = call_generator_name.len() - with_context_str.len();
+				fn_name = fn_name.get(..fn_len).unwrap().to_string();
+				call_generator_name = call_generator_name.get(..gen_len).unwrap().to_string();
+				execution_context = arg_names2.pop().unwrap();
 			}
+			let native_call_generator_ident =
+				generate_native_call_generator_fn_name(&call_generator_name);
+			
+			// Generate the new method implementation that calls into the runime.
+			parse_quote!(
+				{
+					let args = #crate_::runtime_api::Encode::encode(&( #( &#arg_names ),* ));
+					self.call_api_at(
+						at,
+						#fn_name,
+						args,
+						#runtime_mod_path #native_call_generator_ident ::
+							<#runtime, #node_block #(, #trait_generic_arguments )*> (
+							#( #arg_names2 ),*
+						),
+						#execution_context
+					)
+				}
+			)
 		};
 
 		let mut input =	fold::fold_impl_item_method(self, input);
@@ -599,13 +546,13 @@ impl<'a> Fold for ApiRuntimeImplToApiRuntimeApiImpl<'a> {
 }
 
 fn generate_impl_with_context(impls: &mut [ItemImpl]) {
-	let pat = Pat::Ident(PatIdent { by_ref: None, mutability: None, ident: Ident::new("context", Span::call_site()), subpat: None });
-	let mut punctuated = syn::punctuated::Punctuated::new();
-	let punctuated_item = PathSegment { ident: Ident::new("ExecutionContext", Span::call_site()), arguments: PathArguments::None };
-	punctuated.push(punctuated_item); 
-	let ty = syn::Type::Path(syn::TypePath { qself: None, path: Path { leading_colon: None, segments: punctuated } });
-	let context_arg = Captured(ArgCaptured { pat, colon_token: syn::token::Colon(Span::call_site()), ty });
-		
+	// let pat = Pat::Ident(PatIdent { by_ref: None, mutability: None, ident: Ident::new("context", Span::call_site()), subpat: None });
+	// let mut punctuated = syn::punctuated::Punctuated::new();
+	// let punctuated_item = PathSegment { ident: Ident::new("ExecutionContext", Span::call_site()), arguments: PathArguments::None };
+	// punctuated.push(punctuated_item); 
+	// let ty = syn::Type::Path(syn::TypePath { qself: None, path: Path { leading_colon: None, segments: punctuated } });
+	// let context_arg = Captured(ArgCaptured { pat, colon_token: syn::token::Colon(Span::call_site()), ty });
+	let context_arg: syn::FnArg = parse_quote!( context: ExecutionContext );
 	for impl_ in impls {
 		let mut ctx_methods = vec![];
 		for item in &impl_.items {
