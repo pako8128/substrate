@@ -17,6 +17,7 @@ linked-hash-map = "0.5"
 lru-cache = "0.1.1"
 rustc-hex = "2.0"
 rand = "0.6"
+dag = { path = "../../core/util/dag" }
 substrate-primitives = { path = "../../core/primitives" }
 substrate-consensus-common = { path = "../../core/consensus/common" }
 substrate-client = { path = "../../core/client" }

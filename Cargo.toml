@@ -51,6 +51,7 @@ members = [
 	"core/transaction-pool",
 	"core/transaction-pool/graph",
 	"core/inherents",
+	"core/util/dag",
 	"srml/support",
 	"srml/support/procedural",
 	"srml/support/procedural/tools",
