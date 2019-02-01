@@ -644,7 +644,6 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 	fn try_commit_operation(&self, mut operation: BlockImportOperation<Block, Blake2Hasher>)
 		-> Result<(), client::error::Error>
 	{
-		println!("db inside commit_operation ----------------------------");
 		let mut transaction = DBTransaction::new();
 		operation.apply_aux(&mut transaction);
 
@@ -786,7 +785,6 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 			{
 				let mut leaves = self.blockchain.leaves.write();
 				let displaced_leaf = leaves.import(hash, number, parent_hash);
-				println!("db prepare_transaction --------------- {:?}->{:?}", parent_hash, hash);
 				leaves.prepare_transaction(&mut transaction, columns::META, meta_keys::LEAF_PREFIX);
 				
 				let mut children = self.blockchain().children.write();
