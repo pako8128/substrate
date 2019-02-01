@@ -44,7 +44,7 @@ use parking_lot::RwLock;
 use primitives::{H256, Blake2Hasher, ChangesTrieConfiguration, convert_hash};
 use primitives::storage::well_known_keys;
 use runtime_primitives::{generic::BlockId, Justification, StorageMap, ChildrenStorageMap};
-use runtime_primitives::traits::{Hash as HashT, Block as BlockT, Header as HeaderT, As, NumberFor, Zero, Digest, DigestItem, AuthorityIdFor};
+use runtime_primitives::traits::{Block as BlockT, Header as HeaderT, As, NumberFor, Zero, Digest, DigestItem, AuthorityIdFor};
 use runtime_primitives::BuildStorage;
 use state_machine::backend::Backend as StateBackend;
 use executor::RuntimeInfo;
@@ -787,7 +787,7 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 				let displaced_leaf = leaves.import(hash, number, parent_hash);
 				leaves.prepare_transaction(&mut transaction, columns::META, meta_keys::LEAF_PREFIX);
 				
-				let mut children = self.blockchain().children.write();
+				let mut children = self.blockchain.children.write();
 				children.import(parent_hash, hash);
 				children.prepare_transaction(&mut transaction, columns::META, meta_keys::CHILD_PREFIX);
 
