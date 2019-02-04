@@ -339,7 +339,7 @@ fn generate_runtime_api_base_structures(impls: &[ItemImpl]) -> Result<TokenStrea
 				function: &'static str,
 				args: Vec<u8>,
 				native_call: NC,
-				context: ExecutionContext
+				context: #crate_::runtime_api::ExecutionContext
 			) -> #crate_::error::Result<R> {
 				let res = unsafe {
 					self.call.call_api_at(
@@ -478,7 +478,7 @@ impl<'a> Fold for ApiRuntimeImplToApiRuntimeApiImpl<'a> {
 			let trait_generic_arguments = self.trait_generic_arguments;
 			let node_block = self.node_block;
 
-			let mut execution_context = parse_quote!( ExecutionContext::Other );
+			let mut execution_context = parse_quote!( #crate_::runtime_api::ExecutionContext::Other );
 			let mut call_generator_name = input.sig.ident.to_string();
 			
 			let with_context_str = "_with_context";
