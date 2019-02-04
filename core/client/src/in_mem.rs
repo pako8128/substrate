@@ -190,7 +190,6 @@ impl<Block: BlockT> Blockchain<Block> {
 		let mut storage = self.storage.write();
 
 		storage.leaves.import(hash.clone(), number.clone(), header.parent_hash().clone());
-		// storage.children.import(header.parent_hash().clone(), hash.clone());
 		
 		if new_state.is_best() {
 			if let Some(tree_route) = best_tree_route {
@@ -345,7 +344,7 @@ impl<Block: BlockT> blockchain::Backend<Block> for Blockchain<Block> {
 		Ok(self.storage.read().leaves.hashes())
 	}
 
-	fn children(&self, _id: Block::Hash) -> Vec<Block::Hash> {
+	fn children(&self, _id: Block::Hash) -> error::Result<Vec<Block::Hash>> {
 		unimplemented!()
 	}
 }
