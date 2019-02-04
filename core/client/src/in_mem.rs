@@ -99,6 +99,7 @@ struct BlockchainStorage<Block: BlockT> {
 	header_cht_roots: HashMap<NumberFor<Block>, Block::Hash>,
 	changes_trie_cht_roots: HashMap<NumberFor<Block>, Block::Hash>,
 	leaves: LeafSet<Block::Hash, NumberFor<Block>>,
+	children: ChildrenMap<Block::Hash, Block::Hash>,
 	aux: HashMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -149,6 +150,7 @@ impl<Block: BlockT> Blockchain<Block> {
 				header_cht_roots: HashMap::new(),
 				changes_trie_cht_roots: HashMap::new(),
 				leaves: LeafSet::new(),
+				children: ChildrenMap::new(),
 				aux: HashMap::new(),
 			}));
 		Blockchain {
@@ -190,7 +192,8 @@ impl<Block: BlockT> Blockchain<Block> {
 		let mut storage = self.storage.write();
 
 		storage.leaves.import(hash.clone(), number.clone(), header.parent_hash().clone());
-		
+		storage.children.import(header.parent_hash().clone(), hash.clone());
+
 		if new_state.is_best() {
 			if let Some(tree_route) = best_tree_route {
 				// apply retraction and enaction when reorganizing up to parent hash
@@ -344,8 +347,8 @@ impl<Block: BlockT> blockchain::Backend<Block> for Blockchain<Block> {
 		Ok(self.storage.read().leaves.hashes())
 	}
 
-	fn children(&self, _id: Block::Hash) -> error::Result<Vec<Block::Hash>> {
-		unimplemented!()
+	fn children(&self, parent_hash: Block::Hash) -> error::Result<Vec<Block::Hash>> {
+		Ok(self.storage.read().children.hashes_from_mem(parent_hash))
 	}
 }
 
