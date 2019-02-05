@@ -17,7 +17,8 @@
 use utils::{
 	unwrap_or_error, generate_crate_access, generate_hidden_includes,
 	generate_runtime_mod_name_for_trait, fold_fn_decl_for_client_side, generate_unique_pattern,
-	extract_parameter_names_types_and_borrows, generate_native_call_generator_fn_name
+	extract_parameter_names_types_and_borrows, generate_native_call_generator_fn_name,
+	generate_method_with_context,
 };
 
 use proc_macro;
@@ -250,9 +251,7 @@ fn generate_block_and_block_id_ty(
 	let block = quote!( <#runtime as #crate_::runtime_api::#trait_>::#assoc_type );
 	let block_id = quote!( #crate_::runtime_api::BlockId<#block> );
 
-	let ts = (block, block_id);
-	// println!("BLOCK AND BLOCK ID\n{}\n\n{}\n", ts.0, ts.1);
-	ts
+	(block, block_id)
 }
 
 fn generate_node_block_and_block_id_ty(runtime: &Type) -> (TokenStream, TokenStream) {
@@ -478,7 +477,7 @@ impl<'a> Fold for ApiRuntimeImplToApiRuntimeApiImpl<'a> {
 			let trait_generic_arguments = self.trait_generic_arguments;
 			let node_block = self.node_block;
 
-			let execution_context: syn::FnArg = parse_quote!( ExecutionContext::Other );
+			let execution_context: syn::FnArg = parse_quote!( #crate_::runtime_api::ExecutionContext::Other );
 			let mut call_generator_name = input.sig.ident.to_string();
 			let native_call_generator_ident =
 				generate_native_call_generator_fn_name(&call_generator_name);
@@ -524,24 +523,12 @@ impl<'a> Fold for ApiRuntimeImplToApiRuntimeApiImpl<'a> {
 
 		input = fold::fold_item_impl(self, input);
 
-		let context_arg: syn::FnArg = parse_quote!( context: ExecutionContext );
 		let mut methods_with_context = vec![];
 
 		for item in &input.items {
 			if let ImplItem::Method(method) = item {
-				let mut ctx_method = method.clone();
-				let mut stmt = ctx_method.block.stmts.pop().unwrap();
-				if let syn::Stmt::Expr(ref mut method_call) = stmt {
-					if let syn::Expr::MethodCall(ref mut expr) = method_call {
-						expr.args.pop();
-						let default_context = parse_quote!( context );
-						expr.args.push(default_context);
-					}
-				}
-				ctx_method.sig.ident = Ident::new(&format!("{}_with_context", &ctx_method.sig.ident), Span::call_site());
-				ctx_method.sig.decl.inputs.push(context_arg.clone());
-				ctx_method.block.stmts.push(stmt);
-				methods_with_context.push(ImplItem::Method(ctx_method));
+				let ctx_method = generate_method_with_context(method);
+				methods_with_context.push(ImplItem::Method(ctx_method));	
 			}
 		}
 
@@ -635,7 +622,7 @@ fn generate_runtime_api_versions(impls: &[ItemImpl]) -> Result<TokenStream> {
 /// The implementation of the `impl_runtime_apis!` macro.
 pub fn impl_runtime_apis_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	// Parse all impl blocks
-	let RuntimeApiImpls { impls: mut api_impls } = parse_macro_input!(input as RuntimeApiImpls);
+	let RuntimeApiImpls { impls: api_impls } = parse_macro_input!(input as RuntimeApiImpls);
 	
 	let dispatch_impl = unwrap_or_error(generate_dispatch_function(&api_impls));
 	let api_impls_for_runtime = unwrap_or_error(generate_api_impl_for_runtime(&api_impls));
@@ -643,9 +630,6 @@ pub fn impl_runtime_apis_impl(input: proc_macro::TokenStream) -> proc_macro::Tok
 	let hidden_includes = generate_hidden_includes(HIDDEN_INCLUDES_ID);
 	let runtime_api_versions = unwrap_or_error(generate_runtime_api_versions(&api_impls));
 	let wasm_interface = unwrap_or_error(generate_wasm_interface(&api_impls));
-	
-	// generate_impl_with_context(&mut api_impls);
-
 	let api_impls_for_runtime_api = unwrap_or_error(generate_api_impl_for_runtime_api(&api_impls));
 
 	quote!(

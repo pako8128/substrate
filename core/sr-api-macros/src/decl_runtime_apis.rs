@@ -29,7 +29,6 @@ use syn::{
 	spanned::Spanned, parse_macro_input, parse::{Parse, ParseStream, Result, Error}, ReturnType,
 	fold::{self, Fold}, FnDecl, parse_quote, ItemTrait, Generics, GenericParam, Attribute,
 	visit::{Visit, self}, FnArg, Pat, TraitBound, Meta, NestedMeta, Lit, TraitItem, Ident, Type,
-	PatIdent, PathSegment, Path, ArgCaptured, FnArg::Captured, PathArguments
 };
 
 use std::collections::HashMap;
