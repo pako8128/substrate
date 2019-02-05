@@ -38,7 +38,7 @@ mod tests {
 		twox_128, Blake2Hasher, ChangesTrieConfiguration, ed25519::{Public, Pair}, NeverNativeValue
 	};
 	use node_primitives::{Hash, BlockNumber, AccountId};
-	use runtime_primitives::traits::{Header as HeaderT, Digest as DigestT, Hash as HashT};
+	use runtime_primitives::traits::{Header as HeaderT, Digest as DigestT, Hash as HashT, Staking};
 	use runtime_primitives::{generic, generic::Era, ApplyOutcome, ApplyError, ApplyResult, Perbill};
 	use {balances, indices, staking, session, system, consensus, timestamp, treasury, contract};
 	use contract::ContractAddressFor;

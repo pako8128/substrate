@@ -76,7 +76,7 @@ use crate::account_db::AccountDb;
 use rstd::prelude::*;
 use rstd::marker::PhantomData;
 use codec::Codec;
-use runtime_primitives::traits::{Hash, As, SimpleArithmetic,Bounded, StaticLookup};
+use runtime_primitives::traits::{Hash, As, SimpleArithmetic,Bounded, StaticLookup, OnFreeBalanceZero};
 use runtime_support::dispatch::{Result, Dispatchable};
 use runtime_support::{Parameter, StorageMap, StorageValue, StorageDoubleMap};
 use system::{ensure_signed, RawOrigin};
@@ -368,7 +368,7 @@ impl<T: Trait> StorageDoubleMap for StorageOf<T> {
 	}
 }
 
-impl<T: Trait> balances::OnFreeBalanceZero<T::AccountId> for Module<T> {
+impl<T: Trait> OnFreeBalanceZero<T::AccountId> for Module<T> {
 	fn on_free_balance_zero(who: &T::AccountId) {
 		<CodeHashOf<T>>::remove(who);
 		<StorageOf<T>>::remove_prefix(who.clone());

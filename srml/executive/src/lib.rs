@@ -299,7 +299,7 @@ mod tests {
 	use runtime_io::with_externalities;
 	use substrate_primitives::{H256, Blake2Hasher};
 	use primitives::BuildStorage;
-	use primitives::traits::{Header as HeaderT, BlakeTwo256, IdentityLookup};
+	use primitives::traits::{Header as HeaderT, BlakeTwo256, IdentityLookup, Staking};
 	use primitives::testing::{Digest, DigestItem, Header, Block};
 	use system;
 
